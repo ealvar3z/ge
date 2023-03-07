@@ -1,5 +1,12 @@
 package main
 
+import (
+	"container/list"
+	"time"
+
+	"golang.org/x/sys/unix"
+)
+
 const (
 	GE_GREP_CMD = "!rg -uuu --line-number "
 	GE_FIND_CMD = "!find . -type f -name "
@@ -102,18 +109,107 @@ type geconf struct {
  */
 
 type gehist struct {
-	Cmd  string
-	List tailqEntry[gehist]
+	cmd string
 }
 
-type geHistList tailqHead[gehist]
+// Define the history list as a head of the tail queue
+type ge_histlist struct {
+	head *list.List
+}
+
+// represents a single line in a file
+const GE_LINE_ALLOCATED = 1 << 1
 
 type geline struct {
-	flag    uint32
-	data    interface{}
-	maxsz   uint
-	length  uint
-	columns uint
+	flags   uint32      // flags
+	data    interface{} // line data
+	maxsz   uint        // size of allocation in case line is allocated
+	length  uint        // length of the line in bytes
+	columns uint        // length of the line in columns
 }
 
-const GELINE_ALLOCATED = 1 << 1
+/*
+ * A marker and its associated line in a cebuf.
+ */
+const (
+	GE_MARK_MIN      = '0'
+	GE_MARK_MAX      = 'z'
+	GE_MARK_OFFSET   = GE_MARK_MIN
+	GE_MARK_PREVIOUS = '\''
+	GE_MARK_SELEXEC  = '.'
+)
+
+type gemark struct {
+	set  bool
+	line int
+	col  int
+	off  int
+}
+
+/*
+ * A running process that is attached to a buffer.
+ */
+const GE_PROC_AUTO_SCROLL = (1 << 1)
+
+type geproc struct {
+	pid   int          // Process id
+	ofd   int          // File descriptor to read from
+	pfd   *unix.PollFd // Set from ge_buffer_proc_gather() until ge_buffer_proc_dispatch()
+	first int          // XXX merge into flags?
+	flags int          // Aux flags
+	idx   uint64       // Line number index when command started
+	cnt   uint64       // Number of bytes read in total
+	cmd   string       // The command that was run
+	buf   *gebuf       // Pointer back to the owning buffer
+}
+
+const (
+	GE_BUFFER_DIRTY = 0x0001
+	GE_BUFFER_RO    = 0x0004
+)
+
+const (
+	GE_BUF_TYPE_DEFAULT  = 0
+	GE_BUF_TYPE_DIRLIST  = 1
+	GE_BUF_TYPE_SHELLCMD = 2
+)
+
+type gebuf struct {
+	internal   bool
+	buftype    uint16
+	flags      uint32
+	type_      uint32
+	data       []byte
+	maxsz      int
+	length     int
+	prev       *gebuf
+	path       string
+	mode       uint32
+	mtime      time.Time
+	name       string
+	cursorLine int
+	line       int
+	column     int
+	width      int
+	height     int
+	origLine   int
+	origColumn int
+	top        int
+	loff       int
+	lcnt       int
+	lines      []*geline
+	markers    [GE_MARK_MAX]gemark
+	prevmark   gemark
+	selend     gemark
+	selmark    gemark
+	selstart   gemark
+	selexec    gemark
+	proc       *geproc
+	cb         func(*gebuf, uint8)
+	intdata    interface{}
+	list       *list.Element
+}
+
+type ge_buflist struct {
+	head *list.List
+}

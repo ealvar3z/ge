@@ -11,7 +11,7 @@ import (
 
 type fileType struct {
 	ext   string
-	_type int
+	_type uint32
 }
 
 var fileTypes = []fileType{
@@ -113,16 +113,16 @@ func main() {
 }
 
 func geFileTypeDetect(buf *gebuf) {
-	buf.Type = GE_FILE_TYPE_PLAIN
+	buf.type_ = GE_FILE_TYPE_PLAIN
 
-	ext := filepath.Ext(buf.Path)
+	ext := filepath.Ext(buf.path)
 	for _, ft := range fileTypes {
 		if ext == ft.ext {
-			buf.Type = ft._type
+			buf.type_ = ft._type
 			break
 		}
 	}
-	logrus.Debugf("'%s' is type '%d'", buf.Path, buf.Type)
+	logrus.Debugf("'%s' is type '%d'", buf.path, buf.type_)
 }
 
 func geLameMode() bool { return lame }
