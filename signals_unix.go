@@ -15,7 +15,10 @@ func (ed *Editor) handleSignals() {
 		case syscall.SIGINT:
 			ed.err = ErrInterrupt
 			fmt.Fprintf(ed.stdout, "\n%s\n", ErrDefault)
-			// TODO(thimc): SIGINT: Return to command mode on interrupt.
+			// DONE(eax): SIGINT: Return to command mode on interrupt.
+			if ed.cancel != nil {
+				ed.cancel()
+			}
 		case syscall.SIGHUP:
 			if ed.file.dirty && len(ed.file.lines) > 0 {
 				ed.file.write(DefaultHangupFile, 'w', 1, len(ed.file.lines))
