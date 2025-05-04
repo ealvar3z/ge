@@ -132,7 +132,10 @@ func WithFile(path string) Option {
 // WithBinary toggles "binary mode", replacing every NULL with a newline
 // and suppresing the autiomatic trailing newline on read/write.
 func WithBinary(b bool) Option {
-	return func(ed *Editor) { ed.binary = b }
+	return func(ed *Editor) {
+		ed.binary = b
+		ed.file.binary = b
+	}
 }
 
 func NewEditor(opts ...Option) *Editor {
@@ -277,7 +280,15 @@ func (ed *Editor) read(path string) error {
 		if err != nil {
 			return ErrCannotReadFile
 		}
-		lines = strings.Split(strings.TrimSuffix(string(buf), "\n"), "\n")
+		data := string(buf)
+		if ed.binary {
+			// in binary mode
+			data = strings.ReplaceAll(data, "\x00", "\n")
+			lines = strings.Split(data, "\n")
+		} else {
+			// in normal mode
+			lines = strings.Split(strings.TrimSuffix(data, "\n"), "\n")
+		}
 		n := ed.second
 		if n >= len(ed.file.lines) {
 			n = 0

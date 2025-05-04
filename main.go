@@ -42,10 +42,10 @@ func main() {
 		os.Exit(1)
 	}
 	flag.Parse()
+	opts := []Option{WithStdin(os.Stdin), WithPrompt(*Prompt)}
 	if *Binary {
 		opts = append(opts, WithBinary(*Binary))
 	}
-	opts := []Option{WithStdin(os.Stdin), WithPrompt(*Prompt)}
 	if flag.NArg() > 0 {
 		arg := flag.Args()[0]
 		if arg == "-" {

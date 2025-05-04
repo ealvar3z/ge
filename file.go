@@ -14,6 +14,7 @@ type cursor struct {
 
 type file struct {
 	dirty bool           // modified state
+	binary bool		// binary mode: suppress trailing newline on write
 	lines []string       // file content
 	mark  ['z' - 'a']int // a to z
 	path  string         // full file path to the file
@@ -61,7 +62,7 @@ func (f *file) write(path string, r rune, start, end int) (int, error) {
 	}
 	start = max(start-1, 0)
 	lastline := ""
-	if len(f.lines) > 0 && f.lines[end-1] != "" {
+	if !f.binary && len(f.lines) > 0 && f.lines[end-1] != "" {
 		lastline = "\n"
 	}
 	size, err := file.WriteString(strings.Join(f.lines[start:end], "\n") + lastline)
