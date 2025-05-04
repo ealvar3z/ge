@@ -16,6 +16,7 @@ var cmds map[rune]cmd
 func init() {
 	cmds = map[rune]cmd{
 		'a':  cmdAppend,
+		'b':  cmdBrowse,
 		'c':  cmdChange,
 		'd':  cmdDelete,
 		'E':  cmdEdit,
@@ -43,7 +44,7 @@ func init() {
 		'u':  cmdUndo,
 		'W':  cmdWrite,
 		'w':  cmdWrite,
-		'z':  cmdScroll,
+		'z':  cmdBrowseBackwards,
 		'=':  cmdLineCount,
 		'!':  cmdShell,
 		'\n': cmdNone,
@@ -574,12 +575,33 @@ func cmdWrite(ed *Editor) error {
 	return nil
 }
 
-func cmdScroll(ed *Editor) error {
+// func cmdBrowse(ed *Editor) error {
+//  	ed.consume()
+//   	ed.first = 1
+// 	if err := ed.validate(ed.first, ed.dot+1); err != nil {
+// 		return err
+// 	} else if unicode.IsDigit(ed.token()) {
+//  		n, err := ed.scanNumber()
+//  		if err != nil {
+//  			return err
+//  		}
+//  		ed.scroll = n
+//  	}
+// 
+//  	ed.cs = suffixPrint
+//  	if err := ed.getSuffix(); err != nil {
+//  		return err
+//  	}
+//  	scroll := len(ed.file.lines)
+//  	if ed.second+ed.scroll < len(ed.file.lines) {
+//  		scroll = ed.second + ed.scroll
+//  	}
+//  	return ed.display(ed.second, scroll, ed.cs)
+// }
+
+func cmdBrowse(ed *Editor) error {
 	ed.consume()
-	ed.first = 1
-	if err := ed.validate(ed.first, ed.dot+1); err != nil {
-		return err
-	} else if unicode.IsDigit(ed.token()) {
+	if unicode.IsDigit(ed.token()) {
 		n, err := ed.scanNumber()
 		if err != nil {
 			return err
@@ -590,11 +612,46 @@ func cmdScroll(ed *Editor) error {
 	if err := ed.getSuffix(); err != nil {
 		return err
 	}
-	scroll := len(ed.file.lines)
-	if ed.second+ed.scroll < len(ed.file.lines) {
-		scroll = ed.second + ed.scroll
+	start := ed.second
+	if start < 1 {
+		start = 1
 	}
-	return ed.display(ed.second, scroll, ed.cs)
+	end := start + ed.scroll
+	if end > len(ed.file.lines) {
+		end = len(ed.file.lines)
+	}
+	return ed.display(start, end, ed.cs)
+}
+
+// cmdBrowseBackwards implements Plan 9’s `z` command: scroll backward by ed.scroll lines.
+func cmdBrowseBackwards(ed *Editor) error {
+   ed.consume() // skip 'z'
+
+   if unicode.IsDigit(ed.token()) {
+       n, err := ed.scanNumber()
+       if err != nil {
+           return err
+       }
+       ed.scroll = n
+   }
+
+   // Allow explicit suffix (range or +/–), though typically unused for z
+   ed.cs = suffixPrint
+   if err := ed.getSuffix(); err != nil {
+       return err
+   }
+
+   // Compute the window [start..end] ending just before current dot
+   end := ed.dot - 1
+   if end < 1 {
+       end = 1
+   }
+   start := end - ed.scroll + 1
+   if start < 1 {
+       start = 1
+   }
+
+   return ed.display(start, end, ed.cs)
 }
 
 func cmdLineCount(ed *Editor) error {

@@ -152,6 +152,7 @@ func NewEditor(opts ...Option) *Editor {
 		cancel:	cancel,
 		sigch:  make(chan os.Signal, 1),
 		lc:     1,
+		scroll: 20,
 	}
 	if fi, err := os.Stdin.Stat(); err == nil {
 		ed.script = fi.Mode()&os.ModeCharDevice == 0
