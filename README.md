@@ -19,12 +19,14 @@ the Go programming languages standard library uses that in the
 
 This port extends thimc/ed's port by adding the following:
 
-1. readline support via [liner](https://github.com/peterh/liner)
-1. modifies POSIX `z` command to `b` command from Plan9 ed.  
+- [] finish all of thimc's TODOs.
+- [x] modify POSIX `z` command (browse backward)
+- [x] implement `b` command (browse forward) from Plan9 ed.  
+- [] readline support via [liner](https://github.com/peterh/liner)
 
 ### Todo
 
-	`grep -rn 'TODO' .`
+	`grep -rn 'TODO' .``
 
 
 ### Installation
