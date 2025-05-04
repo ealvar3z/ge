@@ -34,11 +34,26 @@ func (u *undo) pop(ed *Editor) error {
 	action := u.history[len(u.history)-1]
 	for i := len(action) - 1; i >= 0; i-- {
 		a := action[i]
-		before := ed.file.lines[:a.first-1]
-		after := ed.file.lines[a.first-1:]
+		// fix the slice bounds panic error
+		idx1 := a.first - 1
+		if idx1 < 0 {
+			idx1 = 0
+		}
+		if idx1 > len(ed.file.lines) {
+			idx1 = len(ed.file.lines)
+		}
+		idx2 := a.second
+		if idx2 < 0 {
+			idx2 = 0
+		}
+		if idx2 > len(ed.file.lines) {
+			idx2 = len(ed.file.lines)
+		}
+		before := ed.file.lines[:idx1]
+		after := ed.file.lines[idx1:]
 		switch a.typ {
 		case undoTypeDelete:
-			after = ed.file.lines[a.second:]
+			after = ed.file.lines[idx2:]
 			ed.file.lines = append(before, after...)
 		case undoTypeAdd:
 			ed.file.lines = append(before, append(a.lines, after...)...)
