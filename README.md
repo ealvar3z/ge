@@ -1,6 +1,6 @@
-# ge (my ed clone from this [repo](https://github.com/thimc/ed))
+# ge (go ed(1) clone)
 
-## Original Go Port
+## Original Go [Port (from thimrc)](https://github.com/thimrc/ed)
 
 ```md
 Go clone of [ed(1)](https://man.openbsd.org/ed.1), the famous
