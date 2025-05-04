@@ -74,8 +74,8 @@ type Editor struct {
 	err     error          // previous error
 	gcmd    string         // previous global command
 
-	g    bool  // global command state
-	list []int // indices marked by the global command
+	g    	bool  	       // global command state
+	list 	[]int 	       // indices marked by the global command
 
 	prompt  bool           // state for rendering the prompt
 	up      string         // user prompt
@@ -83,7 +83,7 @@ type Editor struct {
 	silent  bool           // suppress diagnostics
 	script  bool           // stdin is a file
 	lc      int            // line count (script mode)
-	binary  bool           // TODO(thimc): implement "binary mode" which replaces every NULL character with a newline. When this mode is enabled ed should not append a newline on reading/writing.
+	binary  bool           // DONE(eax): implemented "binary mode" which replaces every NULL character with a newline. When this mode is enabled ed should not append a newline on reading/writing.
 	sigch   chan os.Signal // signal handlers
 
 	cs suffix // command suffix
@@ -127,6 +127,12 @@ func WithFile(path string) Option {
 			ed.errorln(true, err)
 		}
 	}
+}
+
+// WithBinary toggles "binary mode", replacing every NULL with a newline
+// and suppresing the autiomatic trailing newline on read/write.
+func WithBinary(b bool) Option {
+	return func(ed *Editor) { ed.binary = b }
 }
 
 func NewEditor(opts ...Option) *Editor {

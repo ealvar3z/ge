@@ -32,6 +32,7 @@ import (
 
 var (
 	Prompt = flag.String("p", "", "user prompt")
+	Binary = flag.Bool("b", false, "binary mode; replace NULL with newline")
 	Silent = flag.Bool("s", false, "suppress diagnostics")
 )
 
@@ -41,6 +42,9 @@ func main() {
 		os.Exit(1)
 	}
 	flag.Parse()
+	if *Binary {
+		opts = append(opts, WithBinary(*Binary))
+	}
 	opts := []Option{WithStdin(os.Stdin), WithPrompt(*Prompt)}
 	if flag.NArg() > 0 {
 		arg := flag.Args()[0]
