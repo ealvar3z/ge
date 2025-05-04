@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -84,6 +85,8 @@ type Editor struct {
 	script  bool           // stdin is a file
 	lc      int            // line count (script mode)
 	binary  bool           // DONE(eax): implemented "binary mode" which replaces every NULL character with a newline. When this mode is enabled ed should not append a newline on reading/writing.
+	ctx		context.Context
+	cancel  context.CancelFunc
 	sigch   chan os.Signal // signal handlers
 
 	cs suffix // command suffix
@@ -139,10 +142,14 @@ func WithBinary(b bool) Option {
 }
 
 func NewEditor(opts ...Option) *Editor {
+	// create a cancelable ctx for interrupt handling
+	ctx, cancel := context.WithCancel(context.Background())
 	ed := &Editor{
 		stdin:  os.Stdin,
 		stdout: os.Stdout,
 		stderr: os.Stderr,
+		ctx:	ctx,
+		cancel:	cancel,
 		sigch:  make(chan os.Signal, 1),
 		lc:     1,
 	}
@@ -229,15 +236,23 @@ func (ed *Editor) run() error {
 
 func (ed *Editor) Run() {
 	for {
-		err := ed.run()
-		if ed.input.pos < 0 {
-			break
-		}
-		if err != nil {
-			ed.errorln(ed.verbose, err)
+		select {
+		case <-ed.ctx.Done():
+			// we Ctrl-c: reset context and go back to prompt
+			ed.ctx, ed.cancel = context.WithCancel(context.Background())
 			continue
+		default:
+			// back to command mode
+			err := ed.run()
+			if ed.input.pos < 0 {
+				break
+			}
+			if err != nil {
+				ed.errorln(ed.verbose, err)
+				continue
+			}
+			ed.err = nil
 		}
-		ed.err = nil
 	}
 }
 
