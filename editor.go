@@ -496,6 +496,9 @@ func (ed *Editor) cmdList() (string, error) {
 
 func (ed *Editor) substitute(re *regexp.Regexp, replace string, nth int) error {
 	var subs int
+	// unescape \n and \t seqs do that newline logic sees actual newlines
+	replace = strings.ReplaceAll(replace, `\n`, "\n")
+	replace = strings.ReplaceAll(replace, `\t`, "\t")
 	for i := ed.first - 1; i < ed.second; i++ {
 		if !re.MatchString(ed.file.lines[i]) {
 			continue
@@ -540,7 +543,32 @@ func (ed *Editor) substitute(re *regexp.Regexp, replace string, nth int) error {
 				j += w
 				sb.WriteRune(r)
 			}
-			// TODO(thimc): Handle embedded newlines in the replacement string.
+			// handle embedded newlines in the replacement
+			newText := sb.String() + ed.file.lines[i][end:]
+			if strings.Contains(replace, "\n") {
+				parts := strings.Split(newText, "\n")
+				// save the undo: old line
+				old := ed.file.lines[i]
+				ed.undo.append(undoTypeAdd, cursor{first: i+1, second: i+1, dot: ed.dot}, []string{old})
+				// splice parts in place of the single line
+				before := ed.file.lines[:1]
+				after  := ed.file.lines[i+1:]
+				ed.file.lines = append(before, append(parts, after...)...)
+				// record undo: new lines
+				ed.undo.append(undoTypeDelete, cursor{
+					first: i+1,
+					second: i+len(parts),
+					dot: ed.dot,
+				}, parts)
+				//update state
+				ed.dirty = true
+				ed.dot = 1+len(parts)
+				subs++
+				// skip over inserted lines
+				i += len(parts) - 1
+				continue
+			}
+			// DONE(eax): Handled embedded newlines in the replacement string.
 			sb.WriteString(ed.file.lines[i][end:])
 			ed.undo.append(undoTypeAdd, cursor{first: i + 1, second: i + 1, dot: ed.dot}, []string{ed.file.lines[i]})
 			ed.undo.append(undoTypeDelete, cursor{first: i + 1, second: i + 1, dot: ed.dot}, []string{sb.String()})
